@@ -7,7 +7,8 @@ defmodule SteinMfa.MixProject do
       version: "0.1.0",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      dialyzer: [plt_add_deps: :transitive]
     ]
   end
 
@@ -22,10 +23,9 @@ defmodule SteinMfa.MixProject do
   defp deps do
     [
       {:stein, "~> 0.5.1"},
-
       {:pot, "~> 0.10.2"},
-
-      {:credo, "~> 1.1", only: [:dev, :test]}
+      {:credo, "~> 1.1", only: [:dev, :test]},
+      {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false}
     ]
   end
 end
