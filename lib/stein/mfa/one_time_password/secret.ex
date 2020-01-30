@@ -73,7 +73,7 @@ defmodule Stein.MFA.OneTimePassword.Secret do
 
       # overrideables
       issuer: opts[:issuer] || default_issuer(),
-      algorithm: opts[:algorithim] || :SHA1,
+      algorithm: opts[:algorithm] || :SHA1,
       period: opts[:period] || 30
     }
   end
@@ -94,7 +94,7 @@ defmodule Stein.MFA.OneTimePassword.Secret do
 
       # overrideables
       issuer: opts[:issuer] || default_issuer(),
-      algorithm: opts[:algorithim] || :SHA1,
+      algorithm: opts[:algorithm] || :SHA1,
       counter: opts[:initial_counter] || 0
     }
   end
