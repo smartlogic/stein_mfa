@@ -7,11 +7,11 @@ defmodule Stein.MFA.OneTimePassword.SecretTest do
   @example_issuer "SmartLogic"
 
   defp generic_hotp(_context) do
-    {:ok, hotp: Secret.new_hotp(@example_label, issuer: @example_issuer)}
+    {:ok, hotp: Secret.new_hotp(@example_label)}
   end
 
   defp generic_totp(_context) do
-    {:ok, totp: Secret.new_totp(@example_label, issuer: @example_issuer)}
+    {:ok, totp: Secret.new_totp(@example_label)}
   end
 
   defp hotp_with_issuer(_context) do
@@ -105,10 +105,86 @@ defmodule Stein.MFA.OneTimePassword.SecretTest do
       do: assert(Secret.new_hotp(@example_label, initial_counter: 20).counter == 20)
   end
 
-  # describe "enrollment url generation (generic)" do
-  #   setup [:generic_totp, :generic_hotp]
+  defp parse_enrollment_uris(context) do
+    {:ok,
+     hotp_uri: URI.parse(Secret.enrollment_url(context[:hotp])),
+     totp_uri: URI.parse(Secret.enrollment_url(context[:totp]))}
+  end
 
-  #   test "scheme is otpauth", c do
-  #     assert URI.parse(c[:])
-  # end
+  describe "enrollment url generation (no issuer)" do
+    setup [:generic_totp, :generic_hotp, :parse_enrollment_uris]
+
+    test "scheme is otpauth", c do
+      assert c[:hotp_uri].scheme == "otpauth"
+      assert c[:totp_uri].scheme == "otpauth"
+    end
+
+    test "host is type", c do
+      assert c[:hotp_uri].host == "hotp"
+      assert c[:totp_uri].host == "totp"
+    end
+
+    test "path is label", c do
+      assert c[:hotp_uri].path == "/" <> @example_label
+      assert c[:totp_uri].path == "/" <> @example_label
+    end
+
+    test "query contains mandatory fields", c do
+      hotp_query = URI.query_decoder(c[:hotp_uri].query) |> Enum.into(%{})
+      totp_query = URI.query_decoder(c[:totp_uri].query) |> Enum.into(%{})
+
+      assert Map.has_key?(hotp_query, "secret")
+      refute hotp_query["secret"] == ""
+      assert hotp_query["secret"] |> :pot_base32.decode()
+
+      assert Map.has_key?(totp_query, "secret")
+      refute totp_query["secret"] == ""
+      assert totp_query["secret"] |> :pot_base32.decode()
+
+      assert Map.has_key?(hotp_query, "counter")
+      assert Integer.parse(hotp_query["counter"])
+      assert Integer.parse(hotp_query["counter"]) >= 0
+    end
+
+    test "query doesn't contain wrong fields", c do
+      hotp_query = URI.query_decoder(c[:hotp_uri].query) |> Enum.into(%{})
+      totp_query = URI.query_decoder(c[:totp_uri].query) |> Enum.into(%{})
+
+      refute Map.has_key?(hotp_query, "period")
+      refute Map.has_key?(totp_query, "counter")
+
+      refute Map.has_key?(hotp_query, "issuer")
+      refute Map.has_key?(totp_query, "issuer")
+    end
+
+    test "query either doesn't contain or has default values for optional fields", c do
+      hotp_query = URI.query_decoder(c[:hotp_uri].query) |> Enum.into(%{})
+      totp_query = URI.query_decoder(c[:totp_uri].query) |> Enum.into(%{})
+
+      assert !Map.has_key?(hotp_query, "algorithm") || hotp_query["algorithm"] == "SHA1"
+      assert !Map.has_key?(totp_query, "algorithm") || totp_query["algorithm"] == "SHA1"
+
+      assert !Map.has_key?(hotp_query, "digits") || hotp_query["digits"] == "6"
+      assert !Map.has_key?(totp_query, "digits") || totp_query["digits"] == "6"
+
+      assert !Map.has_key?(totp_query, "period") || totp_query["period"] == "30"
+    end
+  end
+
+  describe "enrollment url generation with issuer)" do
+    setup [:hotp_with_issuer, :totp_with_issuer, :parse_enrollment_uris]
+
+    test "label is well formed", c do
+      assert c[:hotp_uri].path == "/" <> @example_issuer <> ":" <> @example_label
+      assert c[:totp_uri].path == "/" <> @example_issuer <> ":" <> @example_label
+    end
+
+    test "issuer included in query", c do
+      assert URI.query_decoder(c[:hotp_uri].query)
+             |> Enum.any?(&match?({"issuer", @example_issuer}, &1))
+
+      assert URI.query_decoder(c[:totp_uri].query)
+             |> Enum.any?(&match?({"issuer", @example_issuer}, &1))
+    end
+  end
 end
