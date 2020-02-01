@@ -87,7 +87,7 @@ defmodule Stein.MFA.OneTimePassword.TokenTest do
       refute Token.validate(token)
     end
 
-     test "validates within period + period*time_tolerance, doesn't after period" do
+    test "validates within period + period*time_tolerance, doesn't after period" do
       secret = Secret.new_totp(@example_label, period: @time_based_test_period)
       token = Token.generate(secret)
 

@@ -9,25 +9,29 @@ defmodule Stein.MFA.OneTimePassword.Token do
 
   alias Stein.MFA.OneTimePassword.Secret
 
+  @typedoc "The 6 or 8 digit code (as a string) used for validation"
   @type token_value :: binary()
 
+  @typedoc """
+    represents a token generated for HMAC/counter based validation from an appropriate
+    secret.
+  """
   @type hotp_t :: %__MODULE__{
           value: token_value(),
           secret: Secret.hotp_t()
         }
 
   @typedoc """
-    totp_t represents a token generated for time based validation from an appropriate
+    represents a token generated for time based validation from an appropriate
     secret.
   """
   @type totp_t :: %__MODULE__{
           value: token_value(),
-          secret: Secret.totp_t(),
-          time_tolerance: non_neg_integer()
+          secret: Secret.totp_t()
         }
 
   @enforce_keys [:value, :secret]
-  defstruct [:value, :secret, :time_tolerance]
+  defstruct [:value, :secret]
 
   @secret_atom_to_erlang_crypto_atom %{
     :SHA1 => :sha,
@@ -87,7 +91,7 @@ defmodule Stein.MFA.OneTimePassword.Token do
   """
   def validate(oken, time_tolerance \\ 0)
 
-  @spec validate(hotp_t()) :: boolean()
+  @spec validate(hotp_t(), any()) :: boolean()
   def validate(%__MODULE__{value: v, secret: %Secret{type: :hotp} = s}, _time_tolerance) do
     :pot.valid_hotp(v, s.secret_value,
       digest_method: @secret_atom_to_erlang_crypto_atom[s.algorithm],
@@ -97,7 +101,6 @@ defmodule Stein.MFA.OneTimePassword.Token do
   end
 
   @spec validate(totp_t(), non_neg_integer()) :: boolean()
-
   def validate(%__MODULE__{value: v, secret: %Secret{type: :totp} = s}, time_tolerance) do
     :pot.valid_totp(v, s.secret_value,
       digest_method: @secret_atom_to_erlang_crypto_atom[s.algorithm],
