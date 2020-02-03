@@ -22,10 +22,10 @@ defmodule SteinMfa.MixProject do
   defp deps do
     [
       {:stein, "~> 0.5.1"},
-
       {:pot, "~> 0.10.2"},
-
-      {:credo, "~> 1.1", only: [:dev, :test]}
+      {:credo, "~> 1.1", only: [:dev, :test]},
+      {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false},
+      {:ex_doc, "~> 0.21", only: :dev, runtime: false}
     ]
   end
 end
